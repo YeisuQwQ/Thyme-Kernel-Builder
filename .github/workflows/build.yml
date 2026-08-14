@@ -3,38 +3,18 @@ name: "Build kernels"
 env:
   CONFIGURATION: "repos.json"
   OUT_DIR: "out"
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 on:
   workflow_dispatch:
 
 jobs:
   Set-repos:
-    name: "🐂 Parse repos.json"
+    name: " Parse repos.json"
     runs-on: ubuntu-latest
     outputs:
       repos: ${{ steps.generate-matrix.outputs.repos }}
     steps:
-    - name: "⭐ Install prerequisites"
-  run: |
-    sudo apt-get update -y
-    sudo apt-get install -y --no-install-recommends \
-      build-essential \
-      bc \
-      curl \
-      git \
-      zip \
-      gcc-aarch64-linux-gnu \
-      gcc-arm-linux-gnueabi \
-      libssl-dev \
-      lftp \
-      zstd \
-      wget \
-      libfl-dev \
-      python3 \
-      libarchive-tools \
-      bison \
-      flex
-    # 注意：移除了 ftp, python2（已弃用），添加了 bison, flex（内核编译必需）
       - name: "😄 Checkout"
         uses: actions/checkout@v4
 
@@ -42,7 +22,7 @@ jobs:
         id: generate-matrix
         run: |
           echo "repos<<EOF" >> $GITHUB_OUTPUT
-          cat  ${{ env.CONFIGURATION }} >> $GITHUB_OUTPUT
+          cat ${{ env.CONFIGURATION }} >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
   Build-Kernel:
@@ -57,14 +37,11 @@ jobs:
         repos: ${{ fromJSON(needs.Set-repos.outputs.repos) }}
     env:
       kernelDir: ${{ matrix.repos.kernelSource.name }}_${{ matrix.repos.kernelSource.device }}
-
       kernelName: ${{ matrix.repos.kernelSource.name }}
       kernelRepo: ${{ matrix.repos.kernelSource.repo }}
       kernelBranch: ${{ matrix.repos.kernelSource.branch }}
       kernelDevice: ${{ matrix.repos.kernelSource.device }}
-
       DEFCONFIG_NAME: ${{ matrix.repos.kernelSource.device }}_defconfig
-
       withKernelSU: ${{ matrix.repos.withKernelSU }}
     steps:
       - name: "✨ Create working dir"
@@ -72,8 +49,24 @@ jobs:
 
       - name: "⭐ Install prerequisites"
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential bc curl git zip ftp gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libssl-dev lftp zstd wget libfl-dev python2 python3 libarchive-tools
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            bc \
+            curl \
+            git \
+            zip \
+            gcc-aarch64-linux-gnu \
+            gcc-arm-linux-gnueabi \
+            libssl-dev \
+            lftp \
+            zstd \
+            wget \
+            libfl-dev \
+            python3 \
+            libarchive-tools \
+            bison \
+            flex
 
       - name: "🌟 Clone kernel source => (${{ env.kernelRepo }})"
         working-directory: ./${{ env.kernelDir }}
@@ -95,7 +88,6 @@ jobs:
             echo "$(pwd)/$name/" >> $GITHUB_PATH
             echo "$(pwd)/$name/bin" >> $GITHUB_PATH
           done
-
           echo "PATH Variable: $PATH"
 
       - name: "😎 Set args"
@@ -141,7 +133,7 @@ jobs:
           fi
           echo "args=$args" >> $GITHUB_OUTPUT
 
-      - name: "😋 Update KernelSU"
+      - name: " Update KernelSU"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         if: ${{ env.withKernelSU == 'true' }}
         run: |
@@ -168,7 +160,7 @@ jobs:
           echo "PATH Variable: $PATH"
           make ${{ env.args }} ${{ env.DEFCONFIG_NAME }}
 
-      - name: "🎶 Build kernel"
+      - name: " Build kernel"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         env:
           args: ${{ steps.generate-args.outputs.args }}
@@ -179,31 +171,27 @@ jobs:
       - name: "💛 Upload Image"
         uses: actions/upload-artifact@v4
         with:
-          name: Image(${{ env.kernelDevice }}-${{ env.kernelName }}-${{ env.kernelBranch }})
+          name: Image-${{ env.kernelDevice }}-${{ env.kernelName }}
           path: ./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image
           if-no-files-found: ignore
-          retention-days: 7
 
       - name: "💙 Upload Image.gz"
         uses: actions/upload-artifact@v4
         with:
-          name: Image.gz(${{ env.kernelDevice }}-${{ env.kernelName }}-${{ env.kernelBranch }})
+          name: Image-gz-${{ env.kernelDevice }}-${{ env.kernelName }}
           path: ./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image.gz
           if-no-files-found: ignore
-          retention-days: 7
 
       - name: "💜 Upload dtb"
         uses: actions/upload-artifact@v4
         with:
-          name: dtb(${{ env.kernelDevice }}-${{ env.kernelName }}-${{ env.kernelBranch }})
+          name: dtb-${{ env.kernelDevice }}-${{ env.kernelName }}
           path: ./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtb
           if-no-files-found: ignore
-          retention-days: 7
 
       - name: "❤️ Upload dtbo.img"
         uses: actions/upload-artifact@v4
         with:
-          name: dtbo.img(${{ env.kernelDevice }}-${{ env.kernelName }}-${{ env.kernelBranch }})
+          name: dtbo-img-${{ env.kernelDevice }}-${{ env.kernelName }}
           path: ./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/dtbo.img
           if-no-files-found: ignore
-          retention-days: 7
