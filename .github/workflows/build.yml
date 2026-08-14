@@ -1,3 +1,8 @@
+env:
+  CONFIGURATION: "repos.json"
+  OUT_DIR: "out"
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true  # 临时允许使用Node20
+
 name: "Build kernels"
 
 env:
