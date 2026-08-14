@@ -1,8 +1,3 @@
-env:
-  CONFIGURATION: "repos.json"
-  OUT_DIR: "out"
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true  # 临时允许使用Node20
-
 name: "Build kernels"
 
 env:
@@ -19,6 +14,27 @@ jobs:
     outputs:
       repos: ${{ steps.generate-matrix.outputs.repos }}
     steps:
+    - name: "⭐ Install prerequisites"
+  run: |
+    sudo apt-get update -y
+    sudo apt-get install -y --no-install-recommends \
+      build-essential \
+      bc \
+      curl \
+      git \
+      zip \
+      gcc-aarch64-linux-gnu \
+      gcc-arm-linux-gnueabi \
+      libssl-dev \
+      lftp \
+      zstd \
+      wget \
+      libfl-dev \
+      python3 \
+      libarchive-tools \
+      bison \
+      flex
+    # 注意：移除了 ftp, python2（已弃用），添加了 bison, flex（内核编译必需）
       - name: "😄 Checkout"
         uses: actions/checkout@v4
 
